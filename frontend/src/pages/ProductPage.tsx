@@ -12,7 +12,8 @@ import {
     History,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { createProduct, getProducts, updateProduct } from "../services/productApi";
+import { getProductMovements, stockInProduct as performStockIn } from "../services/inventoryApi";
 import type { Product, StockMovement } from "../types";
 
 export const ProductPage: React.FC = () => {
@@ -57,10 +58,8 @@ export const ProductPage: React.FC = () => {
             if (categoryFilter) params.category = categoryFilter;
             if (lowStockFilter) params.lowStock = "true";
 
-            const response = await api.get("/products", { params });
-            if (response.data.success) {
-                setProducts(response.data.data.products);
-            }
+            const data = await getProducts(params);
+            setProducts(data.products || []);
         } catch (error) {
             console.error("Failed to fetch products", error);
         } finally {
@@ -99,11 +98,9 @@ export const ProductPage: React.FC = () => {
                 minimumStock: Number(formData.minimumStock),
             };
 
-            const response = await api.post("/products", payload);
-            if (response.data.success) {
-                setIsAddModalOpen(false);
-                fetchProducts();
-            }
+            await createProduct(payload);
+            setIsAddModalOpen(false);
+            fetchProducts();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to create product");
         } finally {
@@ -141,11 +138,9 @@ export const ProductPage: React.FC = () => {
                 warehouseLocation: formData.warehouseLocation,
             };
 
-            const response = await api.patch(`/products/${editingProduct.id}`, payload);
-            if (response.data.success) {
-                setEditingProduct(null);
-                fetchProducts();
-            }
+            await updateProduct(editingProduct.id, payload);
+            setEditingProduct(null);
+            fetchProducts();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to update product");
         } finally {
@@ -167,15 +162,13 @@ export const ProductPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const response = await api.post(`/inventory/${stockInProduct.id}/stock-in`, {
+            await performStockIn(stockInProduct.id, {
                 quantity: Number(stockInQuantity),
                 reason: stockInReason,
             });
 
-            if (response.data.success) {
-                setStockInProduct(null);
-                fetchProducts();
-            }
+            setStockInProduct(null);
+            fetchProducts();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to perform Stock IN");
         } finally {
@@ -187,10 +180,8 @@ export const ProductPage: React.FC = () => {
         setMovementAuditProduct(p);
         setMovements([]);
         try {
-            const response = await api.get(`/inventory/${p.id}/movements`);
-            if (response.data.success) {
-                setMovements(response.data.data.movements);
-            }
+            const data = await getProductMovements(p.id);
+            setMovements(data.movements || []);
         } catch (error) {
             console.error("Failed to fetch movements", error);
         }

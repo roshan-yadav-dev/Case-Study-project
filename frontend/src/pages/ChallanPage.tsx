@@ -10,7 +10,9 @@ import {
     Trash2,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { createChallan, getChallanById, getChallans, confirmChallan, cancelChallan } from "../services/challanApi";
+import { getCustomers } from "../services/customerApi";
+import { getProducts } from "../services/productApi";
 import type { Challan, Customer, Product } from "../types";
 
 export const ChallanPage: React.FC = () => {
@@ -46,10 +48,8 @@ export const ChallanPage: React.FC = () => {
             if (statusFilter) params.status = statusFilter;
             if (search) params.search = search;
 
-            const response = await api.get("/challans", { params });
-            if (response.data.success) {
-                setChallans(response.data.data.challans);
-            }
+            const data = await getChallans(params);
+            setChallans(data.challans || []);
         } catch (error) {
             console.error("Failed to fetch challans", error);
         } finally {
@@ -67,12 +67,12 @@ export const ChallanPage: React.FC = () => {
         setLineItems([{ productId: "", quantity: 1 }]);
 
         try {
-            const [custRes, prodRes] = await Promise.all([
-                api.get("/customers?limit=100"),
-                api.get("/products?limit=100"),
+            const [custData, prodData] = await Promise.all([
+                getCustomers({ limit: 100 }),
+                getProducts({ limit: 100 }),
             ]);
-            if (custRes.data.success) setCustomers(custRes.data.data.customers);
-            if (prodRes.data.success) setProducts(prodRes.data.data.products);
+            setCustomers(custData.customers || []);
+            setProducts(prodData.products || []);
             setIsCreateModalOpen(true);
         } catch (error) {
             console.error("Failed to load options for challan creation", error);
@@ -120,11 +120,9 @@ export const ChallanPage: React.FC = () => {
                 items: validItems,
             };
 
-            const response = await api.post("/challans", payload);
-            if (response.data.success) {
-                setIsCreateModalOpen(false);
-                fetchChallans();
-            }
+            await createChallan(payload);
+            setIsCreateModalOpen(false);
+            fetchChallans();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to create sales challan");
         } finally {
@@ -134,10 +132,8 @@ export const ChallanPage: React.FC = () => {
 
     const handleOpenDetail = async (id: string) => {
         try {
-            const response = await api.get(`/challans/${id}`);
-            if (response.data.success) {
-                setDetailChallan(response.data.data.challan);
-            }
+            const challan = await getChallanById(id);
+            setDetailChallan(challan);
         } catch (error) {
             console.error("Failed to load challan detail", error);
         }
@@ -147,13 +143,11 @@ export const ChallanPage: React.FC = () => {
         setModalError(null);
         setIsSubmitting(true);
         try {
-            const response = await api.post(`/challans/${id}/confirm`);
-            if (response.data.success) {
-                if (detailChallan && detailChallan.id === id) {
-                    setDetailChallan(response.data.data.challan);
-                }
-                fetchChallans();
+            const result = await confirmChallan(id);
+            if (detailChallan && detailChallan.id === id) {
+                setDetailChallan(result);
             }
+            fetchChallans();
         } catch (err: any) {
             const message = err.response?.data?.message || "Challan confirmation failed";
             alert(`Confirmation Error: ${message}`);
@@ -166,13 +160,11 @@ export const ChallanPage: React.FC = () => {
         if (!window.confirm("Are you sure you want to cancel this DRAFT sales challan?")) return;
         setIsSubmitting(true);
         try {
-            const response = await api.post(`/challans/${id}/cancel`);
-            if (response.data.success) {
-                if (detailChallan && detailChallan.id === id) {
-                    setDetailChallan(response.data.data.challan);
-                }
-                fetchChallans();
+            const result = await cancelChallan(id);
+            if (detailChallan && detailChallan.id === id) {
+                setDetailChallan(result);
             }
+            fetchChallans();
         } catch (err: any) {
             alert(err.response?.data?.message || "Failed to cancel challan");
         } finally {

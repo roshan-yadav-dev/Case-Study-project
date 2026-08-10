@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { loginRequest } from "../services/authApi";
 
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState("");
@@ -19,12 +19,9 @@ export const LoginPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const response = await api.post("/auth/login", { email, password });
-            if (response.data.success) {
-                const { accessToken, user } = response.data.data;
-                login(accessToken, user);
-                navigate("/dashboard");
-            }
+            const { accessToken, user } = await loginRequest(email, password);
+            login(accessToken, user);
+            navigate("/dashboard");
         } catch (err: any) {
             const message = err.response?.data?.message || "Invalid email or password";
             setError(message);

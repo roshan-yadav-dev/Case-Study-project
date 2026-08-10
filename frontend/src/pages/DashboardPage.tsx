@@ -14,7 +14,12 @@ import {
     UserPlus,
     MessageSquare,
 } from "lucide-react";
-import api from "../services/api";
+import {
+    getDashboardSummary,
+    getDashboardSalesSummary,
+    getDashboardLowStock,
+    getDashboardRecentActivity,
+} from "../services/dashboardApi";
 import type { ActivityItem, DashboardSummary, LowStockProduct, SalesSummary } from "../types";
 
 export const DashboardPage: React.FC = () => {
@@ -32,20 +37,20 @@ export const DashboardPage: React.FC = () => {
     const fetchDashboardData = async (showRefresh = false) => {
         if (showRefresh) setIsRefreshing(true);
         try {
-            const summaryRes = await api.get("/dashboard/summary");
-            if (summaryRes.data.success) setSummary(summaryRes.data.data);
+            const summaryData = await getDashboardSummary();
+            setSummary(summaryData);
 
             const salesParams: any = {};
             if (fromDate) salesParams.from = fromDate;
             if (toDate) salesParams.to = toDate;
-            const salesRes = await api.get("/dashboard/sales-summary", { params: salesParams });
-            if (salesRes.data.success) setSalesSummary(salesRes.data.data);
+            const salesData = await getDashboardSalesSummary(salesParams);
+            setSalesSummary(salesData);
 
-            const lowStockRes = await api.get("/dashboard/low-stock?limit=5");
-            if (lowStockRes.data.success) setLowStock(lowStockRes.data.data.products);
+            const lowStockData = await getDashboardLowStock({ limit: 5 });
+            setLowStock(lowStockData.products || []);
 
-            const activityRes = await api.get("/dashboard/recent-activity?limit=8");
-            if (activityRes.data.success) setActivities(activityRes.data.data.activities);
+            const activityData = await getDashboardRecentActivity({ limit: 8 });
+            setActivities(activityData.activities || []);
         } catch (error) {
             console.error("Failed to load dashboard data", error);
         } finally {

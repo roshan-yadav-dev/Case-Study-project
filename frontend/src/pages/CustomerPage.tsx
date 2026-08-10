@@ -11,7 +11,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { createCustomer, getCustomerById, getCustomers, updateCustomer, addCustomerFollowUp } from "../services/customerApi";
 import type { Customer, CustomerStatus, CustomerType } from "../types";
 
 export const CustomerPage: React.FC = () => {
@@ -56,10 +56,8 @@ export const CustomerPage: React.FC = () => {
             if (statusFilter) params.status = statusFilter;
             if (typeFilter) params.customerType = typeFilter;
 
-            const response = await api.get("/customers", { params });
-            if (response.data.success) {
-                setCustomers(response.data.data.customers);
-            }
+            const data = await getCustomers(params);
+            setCustomers(data.customers || []);
         } catch (error) {
             console.error("Failed to fetch customers", error);
         } finally {
@@ -101,11 +99,9 @@ export const CustomerPage: React.FC = () => {
                 notes: formData.notes ? formData.notes : undefined,
             };
 
-            const response = await api.post("/customers", payload);
-            if (response.data.success) {
-                setIsAddModalOpen(false);
-                fetchCustomers();
-            }
+            await createCustomer(payload);
+            setIsAddModalOpen(false);
+            fetchCustomers();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to create customer");
         } finally {
@@ -148,11 +144,9 @@ export const CustomerPage: React.FC = () => {
                 notes: formData.notes ? formData.notes : undefined,
             };
 
-            const response = await api.patch(`/customers/${editingCustomer.id}`, payload);
-            if (response.data.success) {
-                setEditingCustomer(null);
-                fetchCustomers();
-            }
+            await updateCustomer(editingCustomer.id, payload);
+            setEditingCustomer(null);
+            fetchCustomers();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to update customer");
         } finally {
@@ -162,10 +156,8 @@ export const CustomerPage: React.FC = () => {
 
     const handleOpenDetail = async (c: Customer) => {
         try {
-            const res = await api.get(`/customers/${c.id}`);
-            if (res.data.success) {
-                setDetailCustomer(res.data.data.customer);
-            }
+            const customer = await getCustomerById(c.id);
+            setDetailCustomer(customer);
         } catch (_e) {
             setDetailCustomer(c);
         }
@@ -181,21 +173,16 @@ export const CustomerPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const response = await api.post(`/customers/${detailCustomer.id}/followups`, {
-                followUpDate,
+            await addCustomerFollowUp(detailCustomer.id, {
+                date: followUpDate,
                 notes: followUpNotes,
             });
 
-            if (response.data.success) {
-                // Refresh detail modal content
-                const updatedDetailRes = await api.get(`/customers/${detailCustomer.id}`);
-                if (updatedDetailRes.data.success) {
-                    setDetailCustomer(updatedDetailRes.data.data.customer);
-                }
-                setFollowUpNotes("");
-                setFollowUpDate("");
-                fetchCustomers();
-            }
+            const updatedDetail = await getCustomerById(detailCustomer.id);
+            setDetailCustomer(updatedDetail);
+            setFollowUpNotes("");
+            setFollowUpDate("");
+            fetchCustomers();
         } catch (err: any) {
             setModalError(err.response?.data?.message || "Failed to log follow-up");
         } finally {

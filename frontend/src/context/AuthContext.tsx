@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import api from "../services/api";
+import { fetchCurrentUser } from "../services/authApi";
 import type { User } from "../types";
 
 interface AuthContextType {
@@ -9,9 +9,30 @@ interface AuthContextType {
     isLoading: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
+    hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+    ADMIN: [
+        "customer:create",
+        "customer:update",
+        "product:create",
+        "product:update",
+        "stock:create",
+        "challan:create",
+        "challan:confirm",
+    ],
+    SALES: [
+        "customer:create",
+        "customer:update",
+        "challan:create",
+        "challan:confirm",
+    ],
+    WAREHOUSE: ["product:create", "product:update", "stock:create"],
+    ACCOUNTS: [],
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(() => {
@@ -26,11 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const storedToken = localStorage.getItem("token");
             if (storedToken) {
                 try {
-                    const response = await api.get("/auth/me");
-                    if (response.data.success && response.data.data.user) {
-                        setUser(response.data.data.user);
-                        localStorage.setItem("user", JSON.stringify(response.data.data.user));
-                    }
+                    const currentUser = await fetchCurrentUser();
+                    setUser(currentUser);
+                    localStorage.setItem("user", JSON.stringify(currentUser));
                 } catch (_error) {
                     localStorage.removeItem("token");
                     localStorage.removeItem("user");
@@ -57,6 +76,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
     };
 
+    const hasPermission = (permission: string) => {
+        if (!user) return false;
+        const permissions = ROLE_PERMISSIONS[user.role] ?? [];
+        return permissions.includes(permission);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -66,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 isLoading,
                 login,
                 logout,
+                hasPermission,
             }}
         >
             {children}
