@@ -3,17 +3,22 @@ import dotenv from "dotenv";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import authRoutes from "./routes/auth.routes";
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev"));
 
+if (process.env.NODE_ENV !== "test") {
+    app.use(morgan("dev"));
+}
+
+// Health check endpoint
 app.get("/api/health", (_req, res) => {
     res.status(200).json({
         success: true,
@@ -22,8 +27,5 @@ app.get("/api/health", (_req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+// Authentication and RBAC routes
+app.use("/api/auth", authRoutes);

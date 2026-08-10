@@ -2,15 +2,16 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Mini ERP CRM backend",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/app.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js",
+    "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts",
+    "test": "tsx --test tests/auth.test.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
