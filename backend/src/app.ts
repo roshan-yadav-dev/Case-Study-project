@@ -4,6 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth.routes";
+import challanRoutes from "./routes/challan.routes";
 import customerRoutes from "./routes/customer.routes";
 import inventoryRoutes from "./routes/inventory.routes";
 import productRoutes from "./routes/product.routes";
@@ -41,3 +42,6 @@ app.use("/api/products", productRoutes);
 
 // Inventory & Stock Movement routes
 app.use("/api/inventory", inventoryRoutes);
+
+// Sales Challan & Stock OUT routes
+app.use("/api/challans", challanRoutes);
