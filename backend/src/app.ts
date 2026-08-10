@@ -4,6 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth.routes";
+import customerRoutes from "./routes/customer.routes";
 
 dotenv.config();
 
@@ -29,3 +30,6 @@ app.get("/api/health", (_req, res) => {
 
 // Authentication and RBAC routes
 app.use("/api/auth", authRoutes);
+
+// Customer CRM routes
+app.use("/api/customers", customerRoutes);
