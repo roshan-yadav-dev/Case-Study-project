@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  SALES
+  WAREHOUSE
+  ACCOUNTS
+}
+
+enum CustomerType {
+  RETAIL
+  WHOLESALE
+  DISTRIBUTOR
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+}
+
+enum StockMovementType {
+  IN
+  OUT
+}
+
+enum ChallanStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+// ------------------------------------------------------
+// MODELS
+// ------------------------------------------------------
+
+/// User model for authentication and role-based access control.
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  customerFollowUps CustomerFollowUp[]
+  stockMovements    StockMovement[]
+  challans          Challan[]
+
+  @@index([role])
+}
+
+/// Customer CRM model tracking business/retail client metadata.
+model Customer {
+  id           String         @id @default(uuid())
+  name         String
+  mobile       String
+  email        String?
+  businessName String
+  gstNumber    String?
+  customerType CustomerType
+  address      String
+  status       CustomerStatus @default(LEAD)
+  followUpDate DateTime?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relationships
+  // Design Decision: onDelete: Restrict prevents accidental deletion of Customer records with attached history
+  followUps CustomerFollowUp[]
+  challans  Challan[]
+
+  @@index([status])
+  @@index([customerType])
+  @@index([mobile])
+  @@index([businessName])
+}
+
+/// CustomerFollowUp tracks historical follow-up interactions separately from main customer fields.
+/// Design Decision: A dedicated table allows multiple log entries over time without overwriting previous notes.
+model CustomerFollowUp {
+  id           String   @id @default(uuid())
+  customerId   String
+  followUpDate DateTime
+  notes        String
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  // Relationships
+  // onDelete: Restrict prevents cascade loss of historical follow-up audit records if customer or user is managed
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  creator  User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([customerId])
+  @@index([followUpDate])
+}
+
+/// Product model for inventory cataloging.
+model Product {
+  id                String   @id @default(uuid())
+  name              String
+  sku               String   @unique
+  category          String
+  unitPrice         Decimal  @db.Decimal(12, 2)
+  currentStock      Int      @default(0)
+  minimumStock      Int      @default(0)
+  warehouseLocation String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  stockMovements StockMovement[]
+  challanItems   ChallanItem[]
+
+  @@index([category])
+  @@index([warehouseLocation])
+}
+
+/// StockMovement tracks historical stock additions (IN) and reductions (OUT).
+model StockMovement {
+  id           String            @id @default(uuid())
+  productId    String
+  quantity     Int
+  movementType StockMovementType
+  reason       String
+  createdBy    String
+  createdAt    DateTime          @default(now())
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  creator User    @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([movementType])
+  @@index([productId, createdAt])
+}
+
+/// Challan model representing sales dispatch orders.
+model Challan {
+  id            String        @id @default(uuid())
+  challanNumber String        @unique
+  customerId    String
+  totalQuantity Int           @default(0)
+  status        ChallanStatus @default(DRAFT)
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  confirmedAt   DateTime?
+  cancelledAt   DateTime?
+
+  // Relationships
+  customer Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  creator  User          @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items    ChallanItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([createdAt])
+}
+
+/// ChallanItem stores line items with snapshot product data to preserve historical accuracy.
+model ChallanItem {
+  id                  String   @id @default(uuid())
+  challanId           String
+  productId           String
+  productNameSnapshot String
+  skuSnapshot         String
+  unitPriceSnapshot   Decimal  @db.Decimal(12, 2)
+  quantity            Int
+  createdAt           DateTime @default(now())
+
+  // Relationships
+  challan Challan @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([challanId])
+  @@index([productId])
+}
