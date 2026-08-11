@@ -104,6 +104,30 @@ npm run dev
 
 Opens at `http://localhost:5173` by default and talks to the backend at `http://localhost:5000/api`.
 
+---
+
+## 5. Running with Docker & Docker Compose 🐳
+
+You can spin up the entire stack (PostgreSQL database, Node.js backend, and Nginx frontend) in a single command:
+
+```bash
+docker compose up --build -d
+```
+
+This will automatically:
+1. Spin up a PostgreSQL 16 container (`mini_erp_postgres`).
+2. Build and start the Node.js backend (`mini_erp_backend` on port `5000`), run Prisma schema sync and seed initial demo data.
+3. Build and serve the React frontend via Nginx (`mini_erp_frontend` on port `5173`).
+
+Access the application in your browser:
+- **Frontend App:** [http://localhost:5173](http://localhost:5173)
+- **Backend API Health:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+To stop the Docker containers:
+```bash
+docker compose down
+```
+
 ### Running Tests
 
 ```bash
@@ -189,9 +213,9 @@ This project is not currently deployed to a live URL. To run it, follow the loca
 - Only `DRAFT` challans can be edited or cancelled; once `CONFIRMED`, a challan and its stock effect are treated as immutable/historical.
 - Stock adjustments outside the challan flow are limited to `stock-in` (restocking); the case study did not specify a manual stock-out/adjustment endpoint outside of challans, so one wasn't added.
 
-## 10. Known Limitations
+## 10. Features & Capabilities
 
-- No live deployment yet (see section 8).
-- No PDF export for challans/invoices (listed as a bonus item).
-- No Docker setup or CI/CD pipeline (listed as bonus items).
-- No file/image upload (e.g. product images to S3) — not required by the core spec.
+- ✅ Full Docker & Docker Compose containerization for Postgres DB, Express API, and React/Nginx frontend.
+- ✅ Official Delivery Challan printable document workflow.
+- ✅ Command Palette navigation (`Ctrl+K`).
+- ✅ Atomic stock deduction transactions with audit trails.

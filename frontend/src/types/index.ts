@@ -102,6 +102,8 @@ export interface Challan {
         businessName: string;
         mobile: string;
         email?: string | null;
+        address?: string | null;
+        gstNumber?: string | null;
     };
     creator?: {
         id: string;
