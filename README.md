@@ -205,7 +205,7 @@ This project is deployed and live across cloud platforms:
 - **Backend REST API (Render):** [https://mini-erp-crm-distribution.onrender.com](https://mini-erp-crm-distribution.onrender.com)
 - **Database (Neon PostgreSQL):** Serverless PostgreSQL on Neon
 
-For step-by-step deployment instructions and environment configuration details, refer to [`DEPLOYMENT.md`](./DEPLOYMENT.md).
+For step-by-step deployment instructions and environment configuration details, refer to [`DEPLOYMENT.md`](./DEPLOYMENT.md)
 
 ---
 
