@@ -343,7 +343,8 @@ export class ChallanService {
      * Atomically confirm DRAFT challan and execute Stock OUT inventory reduction.
      */
     static async confirmChallan(id: string, authenticatedUserId: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(
+            async (tx) => {
             const challan = await tx.challan.findUnique({
                 where: { id },
                 include: {
@@ -400,18 +401,30 @@ export class ChallanService {
 
             // Deduct stock and record StockMovement OUT for each item
             for (const item of challan.items) {
-                const affected = await tx.$executeRaw`UPDATE "Product" SET "currentStock" = "currentStock" - ${item.quantity} WHERE "id" = ${item.productId} AND "currentStock" >= ${item.quantity}`;
+                const currentProd = await tx.product.findUnique({
+                    where: { id: item.productId },
+                    select: { currentStock: true },
+                });
 
-                if (affected === 0) {
+                if (!currentProd || currentProd.currentStock < item.quantity) {
                     throw new InsufficientStockError("Insufficient stock", [
                         {
                             productId: item.productId,
                             productName: item.productNameSnapshot,
-                            availableStock: 0,
+                            availableStock: currentProd ? currentProd.currentStock : 0,
                             requestedQuantity: item.quantity,
                         },
                     ]);
                 }
+
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: {
+                        currentStock: {
+                            decrement: item.quantity,
+                        },
+                    },
+                });
 
                 await tx.stockMovement.create({
                     data: {
@@ -439,7 +452,7 @@ export class ChallanService {
             });
 
             return confirmedChallan;
-        });
+        }, { maxWait: 10000, timeout: 30000 });
 
         return this.formatChallan(result);
     }

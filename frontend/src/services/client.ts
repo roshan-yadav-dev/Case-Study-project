@@ -1,7 +1,9 @@
 import axios from "axios";
 import type { AxiosError } from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const cleanApiUrl = rawApiUrl.trim().replace(/\/+$/, "");
+const baseURL = cleanApiUrl.endsWith("/api") ? cleanApiUrl : `${cleanApiUrl}/api`;
 
 const api = axios.create({
     baseURL,

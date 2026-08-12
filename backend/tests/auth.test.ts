@@ -292,6 +292,6 @@ describe("PHASE 3: Authentication & RBAC Test Suite", () => {
     });
 
     after(async () => {
-        await prisma.$disconnect();
+        // No-op connection pool retain for test runner
     });
 });

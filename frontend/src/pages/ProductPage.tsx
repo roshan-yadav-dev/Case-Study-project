@@ -45,10 +45,15 @@ export const ProductPage: React.FC = () => {
     warehouseLocation: "",
   });
 
-  const [stockInQuantity, setStockInQuantity] = useState(1);
+  const [stockInQuantity, setStockInQuantity] = useState("1");
   const [stockInReason, setStockInReason] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const hasWordOrInvalidChar = (val: string): boolean => {
+    if (!val) return false;
+    return /[a-zA-Z]/.test(val) || (val.trim() !== "" && !/^\d+$/.test(val.trim()));
+  };
 
   const fetchProducts = async () => {
     try {
@@ -149,7 +154,7 @@ export const ProductPage: React.FC = () => {
 
   const handleOpenStockIn = (p: Product) => {
     setStockInProduct(p);
-    setStockInQuantity(1);
+    setStockInQuantity("1");
     setStockInReason("");
     setModalError(null);
   };
@@ -158,11 +163,22 @@ export const ProductPage: React.FC = () => {
     e.preventDefault();
     if (!stockInProduct) return;
     setModalError(null);
-    setIsSubmitting(true);
 
+    if (hasWordOrInvalidChar(stockInQuantity)) {
+      setModalError(`Invalid quantity "${stockInQuantity}". Words or letters are not allowed. Please enter numbers only.`);
+      return;
+    }
+
+    const qty = parseInt(stockInQuantity.trim(), 10);
+    if (isNaN(qty) || qty <= 0) {
+      setModalError("Please enter a valid quantity greater than 0.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       await performStockIn(stockInProduct.id, {
-        quantity: Number(stockInQuantity),
+        quantity: qty,
         reason: stockInReason,
       });
 
@@ -525,15 +541,26 @@ export const ProductPage: React.FC = () => {
 
             <form onSubmit={handlePerformStockIn} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Units to Add *</label>
+                <label className="block font-semibold text-slate-700 mb-1">Units to Add (Numbers Only) *</label>
                 <input
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
                   required
                   value={stockInQuantity}
-                  onChange={(e) => setStockInQuantity(Number(e.target.value))}
-                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm font-mono font-bold text-slate-900 focus:border-slate-400 outline-none"
+                  onChange={(e) => setStockInQuantity(e.target.value)}
+                  placeholder="e.g. 10"
+                  className={`w-full rounded-lg border p-2.5 text-sm font-mono font-bold outline-none transition ${
+                    hasWordOrInvalidChar(stockInQuantity)
+                      ? "border-rose-500 bg-white text-rose-900 focus:ring-2 focus:ring-rose-300"
+                      : "border-slate-200 bg-white text-slate-900 focus:border-slate-400"
+                  }`}
                 />
+                {hasWordOrInvalidChar(stockInQuantity) && (
+                  <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Words or letters detected! Please enter numbers only.</span>
+                  </p>
+                )}
               </div>
 
               <div>

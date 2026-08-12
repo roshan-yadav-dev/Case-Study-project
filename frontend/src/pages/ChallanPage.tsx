@@ -34,8 +34,8 @@ export const ChallanPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [lineItems, setLineItems] = useState<Array<{ productId: string; quantity: number }>>([
-    { productId: "", quantity: 1 },
+  const [lineItems, setLineItems] = useState<Array<{ productId: string; quantity: string }>>([
+    { productId: "", quantity: "1" },
   ]);
 
   // Detail Modal & Printable View
@@ -45,6 +45,17 @@ export const ChallanPage: React.FC = () => {
   // UI Feedback State
   const [modalError, setModalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Quantity Validation Helpers
+  const isQuantityValid = (qtyStr: string): boolean => {
+    if (!qtyStr || qtyStr.trim() === "") return false;
+    return /^\d+$/.test(qtyStr.trim()) && parseInt(qtyStr.trim(), 10) > 0;
+  };
+
+  const hasWordOrInvalidChar = (qtyStr: string): boolean => {
+    if (!qtyStr) return false;
+    return /[a-zA-Z]/.test(qtyStr) || (qtyStr.trim() !== "" && !/^\d+$/.test(qtyStr.trim()));
+  };
 
   const fetchChallans = async () => {
     try {
@@ -68,7 +79,7 @@ export const ChallanPage: React.FC = () => {
   const handleOpenCreateModal = async () => {
     setModalError(null);
     setSelectedCustomerId("");
-    setLineItems([{ productId: "", quantity: 1 }]);
+    setLineItems([{ productId: "", quantity: "1" }]);
 
     try {
       const [custData, prodData] = await Promise.all([
@@ -84,7 +95,7 @@ export const ChallanPage: React.FC = () => {
   };
 
   const handleAddLineItem = () => {
-    setLineItems([...lineItems, { productId: "", quantity: 1 }]);
+    setLineItems([...lineItems, { productId: "", quantity: "1" }]);
   };
 
   const handleRemoveLineItem = (index: number) => {
@@ -92,10 +103,10 @@ export const ChallanPage: React.FC = () => {
     setLineItems(lineItems.filter((_, i) => i !== index));
   };
 
-  const handleLineItemChange = (index: number, field: "productId" | "quantity", value: any) => {
+  const handleLineItemChange = (index: number, field: "productId" | "quantity", value: string) => {
     const updated = [...lineItems];
     if (field === "quantity") {
-      updated[index].quantity = Math.max(1, Number(value));
+      updated[index].quantity = value;
     } else {
       updated[index].productId = value;
     }
@@ -105,8 +116,8 @@ export const ChallanPage: React.FC = () => {
   const calculateCreateTotal = () => {
     return lineItems.reduce((sum, item) => {
       const prod = products.find((p) => p.id === item.productId);
-      if (!prod) return sum;
-      return sum + Number(prod.unitPrice) * item.quantity;
+      if (!prod || !isQuantityValid(item.quantity)) return sum;
+      return sum + Number(prod.unitPrice) * parseInt(item.quantity.trim(), 10);
     }, 0);
   };
 
@@ -119,11 +130,32 @@ export const ChallanPage: React.FC = () => {
       return;
     }
 
-    const validItems = lineItems.filter((i) => i.productId && i.quantity > 0);
-    if (validItems.length === 0) {
-      setModalError("Please add at least one valid product row.");
+    if (lineItems.length === 0) {
+      setModalError("Please add at least one product row.");
       return;
     }
+
+    // Validate every line item row
+    for (let idx = 0; idx < lineItems.length; idx++) {
+      const item = lineItems[idx];
+      if (!item.productId) {
+        setModalError(`Row #${idx + 1}: Please select a product SKU.`);
+        return;
+      }
+      if (hasWordOrInvalidChar(item.quantity)) {
+        setModalError(`Row #${idx + 1}: Invalid quantity "${item.quantity}". Words or letters are not allowed. Please enter numbers only.`);
+        return;
+      }
+      if (!isQuantityValid(item.quantity)) {
+        setModalError(`Row #${idx + 1}: Quantity must be a positive number greater than 0.`);
+        return;
+      }
+    }
+
+    const validItems = lineItems.map((i) => ({
+      productId: i.productId,
+      quantity: parseInt(i.quantity.trim(), 10),
+    }));
 
     setIsSubmitting(true);
     try {
@@ -322,13 +354,13 @@ export const ChallanPage: React.FC = () => {
       {/* Create Sales Challan Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4 my-8">
+          <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-slate-700" />
                 <span>Issue New Sales Delivery Challan</span>
               </h3>
-              <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -336,7 +368,7 @@ export const ChallanPage: React.FC = () => {
             {modalError && (
               <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{modalError}</span>
+                <span className="font-medium">{modalError}</span>
               </div>
             )}
 
@@ -365,70 +397,113 @@ export const ChallanPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAddLineItem}
-                    className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                    className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Add Product Row</span>
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {/* Column Header Labels */}
+                  <div className="hidden sm:flex items-center gap-3 px-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="flex-1">Product Description / SKU</div>
+                    <div className="w-36 text-center">Quantity (Direct Number)</div>
+                    <div className="w-32 text-right">Line Total</div>
+                    <div className="w-6"></div>
+                  </div>
+
                   {lineItems.map((item, index) => {
                     const selectedProd = products.find((p) => p.id === item.productId);
+                    const hasWordError = hasWordOrInvalidChar(item.quantity);
+                    const isValidNum = isQuantityValid(item.quantity);
+                    const numQty = isValidNum ? parseInt(item.quantity.trim(), 10) : 0;
+                    const lineTotal = selectedProd ? Number(selectedProd.unitPrice) * numQty : 0;
 
                     return (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200">
-                        <select
-                          required
-                          value={item.productId}
-                          onChange={(e) => handleLineItemChange(index, "productId", e.target.value)}
-                          className="flex-1 rounded border border-slate-200 bg-white p-2 text-slate-900 outline-none"
+                      <div key={index} className="space-y-1">
+                        <div
+                          className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg border transition ${
+                            hasWordError
+                              ? "bg-rose-50/50 border-rose-300"
+                              : "bg-slate-50 border-slate-200 focus-within:border-slate-400"
+                          }`}
                         >
-                          <option value="">-- Select Product --</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.sku}) — Stock: {p.currentStock} — ₹{p.unitPrice}
-                            </option>
-                          ))}
-                        </select>
+                          {/* Product Selection */}
+                          <div className="flex-1 min-w-0">
+                            <select
+                              required
+                              value={item.productId}
+                              onChange={(e) => handleLineItemChange(index, "productId", e.target.value)}
+                              className="w-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium truncate"
+                            >
+                              <option value="">-- Select Product SKU --</option>
+                              {products.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} ({p.sku}) — Stock: {p.currentStock} — ₹{Number(p.unitPrice).toLocaleString("en-IN")}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                        <div className="w-24">
-                          <input
-                            type="number"
-                            min="1"
-                            required
-                            value={item.quantity}
-                            onChange={(e) => handleLineItemChange(index, "quantity", e.target.value)}
-                            placeholder="Qty"
-                            className="w-full rounded border border-slate-200 bg-white p-2 text-slate-900 text-center font-mono font-bold outline-none"
-                          />
+                          {/* Direct Number Textbox (Counter Removed) */}
+                          <div className="w-full sm:w-36 shrink-0 relative">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={item.quantity}
+                              onChange={(e) => handleLineItemChange(index, "quantity", e.target.value)}
+                              placeholder="e.g. 5"
+                              className={`w-full rounded-md border p-2 text-xs text-center font-mono font-bold outline-none transition ${
+                                hasWordError
+                                  ? "border-rose-500 bg-white text-rose-900 focus:ring-2 focus:ring-rose-300"
+                                  : "border-slate-200 bg-white text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-400"
+                              }`}
+                            />
+                          </div>
+
+                          {/* Line Total */}
+                          <div className="w-full sm:w-32 shrink-0 text-right font-mono font-bold text-slate-900 text-xs">
+                            {selectedProd && isValidNum ? (
+                              `₹${lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            ) : selectedProd && hasWordError ? (
+                              <span className="text-rose-500 text-[11px] font-normal">Invalid Qty</span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] font-normal">₹0.00</span>
+                            )}
+                          </div>
+
+                          {/* Delete Action Button */}
+                          <div className="shrink-0 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLineItem(index)}
+                              disabled={lineItems.length === 1}
+                              className="text-slate-400 hover:text-rose-600 disabled:opacity-30 disabled:hover:text-slate-400 p-1 rounded hover:bg-rose-50 transition cursor-pointer"
+                              title="Remove row"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="w-28 text-right font-mono font-bold text-slate-900">
-                          {selectedProd ? (
-                            `₹${(Number(selectedProd.unitPrice) * item.quantity).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                          ) : (
-                            <span className="text-slate-400 text-[10px]">₹0.00</span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLineItem(index)}
-                          className="text-slate-400 hover:text-rose-600 p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {/* Real-time Inline Error Message if words/letters are entered */}
+                        {hasWordError && (
+                          <div className="flex items-center gap-1 text-[11px] font-semibold text-rose-600 pl-2">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>Words or letters detected! Please enter numbers only (e.g. 5).</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Total Value Summary */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100 border border-slate-200">
+                <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-100 border border-slate-200">
                   <span className="font-semibold text-slate-700">Estimated Total Order Value:</span>
                   <span className="text-base font-bold font-mono text-slate-900">
-                    ₹{calculateCreateTotal().toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹{calculateCreateTotal().toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

@@ -76,10 +76,10 @@ async function main() {
 
     // 2. Seed Customers (Retail, Wholesale, Distributor)
     const retailCustomer = await prisma.customer.upsert({
-        where: { id: "c1111111-1111-1111-1111-111111111111" },
+        where: { id: "c1111111-1111-4111-8111-111111111111" },
         update: {},
         create: {
-            id: "c1111111-1111-1111-1111-111111111111",
+            id: "c1111111-1111-4111-8111-111111111111",
             name: "Rajesh Kumar",
             mobile: "9876543210",
             email: "rajesh@retailshop.com",
@@ -94,10 +94,10 @@ async function main() {
     });
 
     const wholesaleCustomer = await prisma.customer.upsert({
-        where: { id: "c2222222-2222-2222-2222-222222222222" },
+        where: { id: "c2222222-2222-4222-8222-222222222222" },
         update: {},
         create: {
-            id: "c2222222-2222-2222-2222-222222222222",
+            id: "c2222222-2222-4222-8222-222222222222",
             name: "Anita Sharma",
             mobile: "9123456789",
             email: "anita@technosolutions.com",
@@ -112,10 +112,10 @@ async function main() {
     });
 
     const distributorCustomer = await prisma.customer.upsert({
-        where: { id: "c3333333-3333-3333-3333-333333333333" },
+        where: { id: "c3333333-3333-4333-8333-333333333333" },
         update: {},
         create: {
-            id: "c3333333-3333-3333-3333-333333333333",
+            id: "c3333333-3333-4333-8333-333333333333",
             name: "Vikram Patel",
             mobile: "9988776655",
             email: "vikram@distrocorp.in",

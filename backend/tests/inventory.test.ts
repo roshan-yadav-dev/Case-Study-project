@@ -59,6 +59,11 @@ describe("PHASE 5: Inventory Management Test Suite", () => {
         warehouseToken = await loginUser("warehouse@example.com");
         accountsToken = await loginUser("accounts@example.com");
 
+        // Clean up leftover test products if present
+        await prisma.product.deleteMany({
+            where: { sku: "PROD-AX3K-TEST" },
+        });
+
         // Create a test product
         const prod = await prisma.product.create({
             data: {
@@ -211,6 +216,5 @@ describe("PHASE 5: Inventory Management Test Suite", () => {
             await prisma.stockMovement.deleteMany({ where: { productId: testProductId } });
             await prisma.product.delete({ where: { id: testProductId } });
         }
-        await prisma.$disconnect();
     });
 });

@@ -57,6 +57,11 @@ describe("PHASE 5: Product Management Test Suite", () => {
         salesToken = await loginUser("sales@example.com");
         warehouseToken = await loginUser("warehouse@example.com");
         accountsToken = await loginUser("accounts@example.com");
+
+        // Clean up leftover test products if present
+        await prisma.product.deleteMany({
+            where: { sku: "PROD-SW-8P" },
+        });
     });
 
     describe("1. Product Creation (POST /api/products)", () => {
@@ -290,6 +295,5 @@ describe("PHASE 5: Product Management Test Suite", () => {
             await prisma.stockMovement.deleteMany({ where: { productId: createdProductId } });
             await prisma.product.delete({ where: { id: createdProductId } });
         }
-        await prisma.$disconnect();
     });
 });

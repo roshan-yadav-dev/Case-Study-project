@@ -4,8 +4,13 @@ import { UserRole } from "../../generated/prisma";
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret_change_in_production";
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || "1d") as SignOptions["expiresIn"];
+function getJwtSecret(): string {
+    const secret = process.env.JWT_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+        throw new Error("JWT_SECRET environment variable is missing in production environment");
+    }
+    return secret || "default_jwt_secret_change_in_production";
+}
 
 export interface JwtTokenPayload {
     sub: string;
@@ -23,8 +28,11 @@ export function generateToken(payload: { sub: string; role: UserRole }): string 
         role: payload.role,
     };
 
-    return jwt.sign(tokenPayload, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN,
+    const secret = getJwtSecret();
+    const expiresIn = (process.env.JWT_EXPIRES_IN || "1d") as SignOptions["expiresIn"];
+
+    return jwt.sign(tokenPayload, secret, {
+        expiresIn,
     });
 }
 
@@ -33,6 +41,8 @@ export function generateToken(payload: { sub: string; role: UserRole }): string 
  * Throws an error if the token is invalid or expired.
  */
 export function verifyToken(token: string): JwtTokenPayload {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtTokenPayload;
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret) as JwtTokenPayload;
     return decoded;
 }
+

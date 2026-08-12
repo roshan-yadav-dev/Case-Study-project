@@ -62,6 +62,11 @@ describe("PHASE 7: Dashboard & Reporting API Test Suite", () => {
         warehouseToken = await loginUser("warehouse@example.com");
         accountsToken = await loginUser("accounts@example.com");
 
+        // Clean up leftover test products if present
+        await prisma.product.deleteMany({
+            where: { sku: { in: ["DASH-PROD-HIGH", "DASH-PROD-LOW"] } },
+        });
+
         // Seed test customer
         const cust = await prisma.customer.create({
             data: {
@@ -361,6 +366,5 @@ describe("PHASE 7: Dashboard & Reporting API Test Suite", () => {
         await prisma.customer.delete({
             where: { id: customerId },
         });
-        await prisma.$disconnect();
     });
 });

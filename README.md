@@ -197,12 +197,15 @@ All endpoints except `POST /auth/login` require a `Bearer <token>` from login. S
 
 ---
 
-## 8. Deployment
+## 8. Live Deployment 🚀
 
-This project is not currently deployed to a live URL. To run it, follow the local setup steps above against your own PostgreSQL instance. It can be deployed by:
-- Backend → Render / Railway / Fly.io (set the env vars from section 3, run `npm run build && npm start`)
-- Frontend → Vercel / Netlify (set `VITE_API_BASE_URL` to the deployed backend's `/api` URL)
-- Database → Neon / Supabase / Render Postgres
+This project is deployed and live across cloud platforms:
+
+- **Frontend Application (Vercel):** [https://erp-crm-distribution.vercel.app](https://erp-crm-distribution.vercel.app)
+- **Backend REST API (Render):** [https://mini-erp-crm-distribution.onrender.com](https://mini-erp-crm-distribution.onrender.com)
+- **Database (Neon PostgreSQL):** Serverless PostgreSQL on Neon
+
+For step-by-step deployment instructions and environment configuration details, refer to [`DEPLOYMENT.md`](./DEPLOYMENT.md).
 
 ---
 

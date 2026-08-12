@@ -11,7 +11,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "npx tsx prisma/seed.ts",
-    "test": "tsx --test --test-concurrency=1 tests/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "render:build": "prisma generate && tsc",
+    "render:start": "prisma migrate deploy && node dist/server.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

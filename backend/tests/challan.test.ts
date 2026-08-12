@@ -63,6 +63,11 @@ describe("PHASE 6: Sales Challan & Transactional Stock OUT Test Suite", () => {
         warehouseToken = await loginUser("warehouse@example.com");
         accountsToken = await loginUser("accounts@example.com");
 
+        // Clean up leftover test products if present
+        await prisma.product.deleteMany({
+            where: { sku: { in: ["PROD-SRV-NODE", "PROD-SW-GB"] } },
+        });
+
         // Create test customer
         const cust = await prisma.customer.create({
             data: {
@@ -464,6 +469,5 @@ describe("PHASE 6: Sales Challan & Transactional Stock OUT Test Suite", () => {
             where: { id: { in: [productAId, productBId] } },
         });
         await prisma.customer.delete({ where: { id: customerId } });
-        await prisma.$disconnect();
     });
 });

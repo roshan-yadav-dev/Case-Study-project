@@ -342,6 +342,5 @@ describe("PHASE 4: Customer CRM Module Test Suite", () => {
             await prisma.customerFollowUp.deleteMany({ where: { customerId: createdCustomerId } });
             await prisma.customer.delete({ where: { id: createdCustomerId } });
         }
-        await prisma.$disconnect();
     });
 });
